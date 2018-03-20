@@ -6,8 +6,8 @@
 
 /**************************************************************************/
 /* start customization */
-//String environmentId = "fieldTrial1Env";
-String environmentId = "auth0%7C5a3133847b89183611baac8eEnv";
+String environmentId = "auth0%7C5a9e5eff864b1f3b20789fafEnv";//aaltestch10@gmail.com
+//String environmentId = "auth0%7C5a9e5fb596cdb7109ddae110Env";//aaltestch20@gmail.com
 
 byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x23, 0x36 }; //MAC address found on the back of your ethernet shield.
 /* These are the settings in case the router does not support DHCP configuration */
