@@ -10,7 +10,7 @@
 
 RF24 radio(9, 10);
 
-const byte address[6] = {0xb1, 0x43, 0x88, 0x99, 0x45};
+const byte address[6] = "10000";
 
 bool ok;
 
