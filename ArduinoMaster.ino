@@ -40,7 +40,7 @@ void setup() {
   radio.startListening();
   radio.printDetails();
 
-  if (1) { /*if (Ethernet.begin(mac) == 0) {*/
+  if (Ethernet.begin(mac) == 0) { /*if (1) for static ip {*/
     Serial.println("Failed to configure Ethernet using DHCP");
     Ethernet.begin(mac, ip, dnServer, gateway, subnet);
     Serial.println("Ethernet configured with static ip");
