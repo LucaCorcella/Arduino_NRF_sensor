@@ -1,65 +1,49 @@
-#include <SPI.h>
 #include <nRF24L01.h>
+#include <SPI.h>
 #include <RF24.h>
-#include "printf.h"
+
 
 /* start customization */
-RF24 radio(9, 10); //channel for Arduino Micro, for Arduino Uno you must change the channel in 7,8!!
+RF24 radio(7, 8); //channel for Arduino Micro, for Arduino Uno you must change the channel in 7,8!!
 /* end configuration */
+const byte address[6] = {0xb2, 0x43, 0x88, 0x99, 0x45};
 
-
-struct dataStruct {
-  String nameSensor;
-  int data;
-} transmitter_motion;
-
-unsigned char ADDRESS0[5]  =
-{
-  0xb2, 0x43, 0x88, 0x99, 0x45
-};
+int data;
+bool ok;
 
 int motion_pin = 2;
 
-int tempMotion = -1;
 
 void setup() {
-  radio.begin();
-  Serial.begin(115200);
-  while (!Serial);
+  Serial.begin(9600);
+  Serial.println("Motion test!");
+  
   pinMode(motion_pin, INPUT);
-  printf_begin();
-  radio.setRetries(15, 15);
-  radio.enableDynamicPayloads();
+  
+  radio.begin();
   radio.setPALevel(RF24_PA_LOW);
-  radio.openWritingPipe(ADDRESS0);
-//  radio.openReadingPipe(0, ADDRESS0);
-  radio.stopListening();
+  radio.openWritingPipe(address);
   radio.printDetails();
-
+  radio.stopListening();
+       
 }
 
-
 void loop() {
-  transmitter_motion.nameSensor = "motion";
-  transmitter_motion.data = digitalRead(motion_pin);
-  bool ok;
-
-  if (tempMotion != transmitter_motion.data) {
+    data = digitalRead(motion_pin);
+    
     Serial.println("motion Val:");
-    Serial.println(transmitter_motion.data);
+    Serial.println(data);
 
-    ok = radio.write(&transmitter_motion, sizeof(transmitter_motion));
-
-    tempMotion = transmitter_motion.data;
+    ok = radio.write(&data, sizeof(data));
 
     if (ok) {
       Serial.println("Pipe 2");
       Serial.println("motion Val:");
-      Serial.println(transmitter_motion.data);
+      Serial.println(data);
     } else {
       Serial.println("it failed to send");
     }
-  }
+  
 
-  delay(1000);
+  delay(5000);
 }
