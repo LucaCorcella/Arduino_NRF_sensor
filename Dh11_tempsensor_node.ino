@@ -1,77 +1,58 @@
-#include <SPI.h>
-#include <nRF24L01.h>
-#include <RF24.h>
-#include "printf.h"
 #include "DHT.h"
 
+#include <nRF24L01.h>
+#include <SPI.h>
+#include <RF24.h>
+
 #define DHTPIN A0     // what analog pin we're connected to
-#define DHTTYPE DHT11
 
-/* start customization */
-RF24 radio(9, 10); //channel for Arduino Micro, for Arduino Uno you must change the channel in 7,8!!
-/* end configuration */
+#define DHTTYPE DHT11   // DHT 22  (AM2302), AM2321
 
+RF24 radio(9, 10);
 
-struct dataStruct {
-  String nameSensor;
-  int dataT;
-  int dataH;
-} transmitter_temperature;
+const byte address[6] = {0xb1, 0x43, 0x88, 0x99, 0x45};
 
-unsigned char ADDRESS0[5]  =
-{
-  0xb1, 0x43, 0x88, 0x99, 0x45
-};
+bool ok;
 
 DHT dht(DHTPIN, DHTTYPE);
 
-int tmpTemperature = 0;
-int tmpHumidity = 0;
-
 void setup() {
-  radio.begin();
-  Serial.begin(115200);
-  while (!Serial);
-  dht.begin();
-  printf_begin();
-  radio.setRetries(15, 15);
-  radio.enableDynamicPayloads();
-  radio.setPALevel(RF24_PA_LOW);
-  radio.openWritingPipe(ADDRESS0);
-  radio.openReadingPipe(0, ADDRESS0);
-  radio.stopListening();
-  radio.printDetails();
+  Serial.begin(9600);
 
+  Serial.println("DHTxx test!");
+  dht.begin();
+
+  radio.begin();  
+  radio.setPALevel(RF24_PA_LOW);
+  radio.openWritingPipe(address);
+  radio.printDetails();
+  radio.stopListening();
 }
 
 void loop() {
-  transmitter_temperature.nameSensor = "temperatureNode";
+  // Wait a few seconds between measurements.
 
-  int h = dht.readHumidity();
-  int t = dht.readTemperature();
 
-  transmitter_temperature.dataT = t;
-  transmitter_temperature.dataH = h;
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
 
-  bool  ok;
+  float temperature[] = {t, h}; //send temperatuere and humidity as array
 
-  if (tmpTemperature != transmitter_temperature.dataT || tmpHumidity != transmitter_temperature.dataH ) {
-    Serial.println("dh11 Val:");
-    Serial.println(transmitter_temperature.dataT);
-    Serial.println(transmitter_temperature.dataH);
 
-    ok = radio.write(&transmitter_temperature, sizeof(transmitter_temperature));
-
-    tmpTemperature = transmitter_temperature.dataT;
-    tmpHumidity = transmitter_temperature.dataH;
-
-    if (ok) {
-      Serial.println("Pipe 1");
-      Serial.println(transmitter_temperature.dataT);
-      Serial.println(transmitter_temperature.dataH);
-    } else {
-      Serial.println("it failed to send");
-    }
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
   }
-  delay(1000);
+     Serial.println(temperature[0]);
+     Serial.println(temperature[1]);
+     ok = radio.write(&temperature, sizeof(temperature));
+     if(!ok) {
+      Serial.println("Failed to send!");
+     }
+    delay(5000);
+
 }
