@@ -11,8 +11,8 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 RF24 radio(7, 8); // CE, CSN
-const byte address1[6] = {0xb1, 0x43, 0x88, 0x99, 0x45};
-const byte address2[6] = {0xb2, 0x43, 0x88, 0x99, 0x45};
+const byte address1[6] = "10000";
+const byte address2[6] = "20000";
 
 byte pip;
 byte pload_width_now;
