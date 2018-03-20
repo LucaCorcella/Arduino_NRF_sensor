@@ -6,7 +6,7 @@
 /* start customization */
 RF24 radio(7, 8); //channel for Arduino Micro, for Arduino Uno you must change the channel in 7,8!!
 /* end configuration */
-const byte address[6] = {0xb2, 0x43, 0x88, 0x99, 0x45};
+const byte address[6] = "20000";
 
 int data;
 bool ok;
