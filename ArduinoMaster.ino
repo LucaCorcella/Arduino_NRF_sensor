@@ -6,8 +6,7 @@
 
 /**************************************************************************/
 /* start customization */
-String environmentId = "auth0%7C5a9e5eff864b1f3b20789fafEnv";//aaltestch10@gmail.com
-//String environmentId = "auth0%7C5a9e5fb596cdb7109ddae110Env";//aaltestch20@gmail.com
+String environmentId = "demo_aviEnv"; //change it with your environment_id
 
 byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x23, 0x36 }; //MAC address found on the back of your ethernet shield.
 /* These are the settings in case the router does not support DHCP configuration */
@@ -24,27 +23,30 @@ const byte address3[6] = "30000";
 byte pip = 0;
 byte pload_width_now;
 
+
+//CLIENT CONFIGURATION
 EthernetClient client;
-IPAddress server(146, 48, 82, 160);       //giove.isti.cnr.it
-//IPAddress server(146, 48, 85, 134);         //taurus.isti.cnr.it
+IPAddress server(146,48,85,130);  //server ip
+int       portServer = 8080; // server port
+String    hostServer = "146.48.85.130";
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Here is the HUB...");
 
   radio.begin();
-  radio.setPALevel(RF24_PA_LOW);
+  radio.setPALevel(RF24_PA_MAX);
   radio.openReadingPipe(1, address1);
   radio.openReadingPipe(2, address2);
   radio.openReadingPipe(3, address3);
   radio.startListening();
   radio.printDetails();
 
-  if (Ethernet.begin(mac) == 0) { /*if (1) for static ip {*/
+  if (1) { /*if (Ethernet.begin(mac) == 0) for static ip {*/
     Serial.println("Failed to configure Ethernet using DHCP");
     Ethernet.begin(mac, ip, dnServer, gateway, subnet);
     Serial.println("Ethernet configured with static ip");
-  } else {
+  } else  {
     Serial.print("My IP address [DHCP]: ");
     for (byte thisByte = 0; thisByte < 4; thisByte++) {
       Serial.print(Ethernet.localIP()[thisByte], DEC);
@@ -92,7 +94,7 @@ void sendDataToCMViaGET(byte pipe, int value) {
     char c = client.read();    
   }
   client.stop();
-  if (client.connect(server, 8880)) {
+  if (client.connect(server, portServer)) { 
     Serial.println(F("Connected to CM"));
     if (pipe == 2) {
       if (value == 0) {
@@ -107,7 +109,7 @@ void sendDataToCMViaGET(byte pipe, int value) {
         client.println("GET /cm/rest/environment/" + environmentId + "/gas-sensor/true HTTP/1.1");
       }
     }
-    client.println("Host: giove.isti.cnr.it");
+    client.println("Host: "+hostServer);
     client.println("Connection: close");
     client.println();
   } else {
@@ -135,10 +137,10 @@ void sendDataToCMViaPOST(float temp, float humidity) {
     Serial.write(c);
   }
   client.stop();
-  if (client.connect(server, 8880)) {
+  if (client.connect(server, portServer)) {
     Serial.println(F("Connected to CM"));
     client.println("POST /cm/rest/environment/" + environmentId + "/DHT11Sensors" + " HTTP/1.1");
-    client.println("Host: giove.isti.cnr.it");
+    client.println("Host: "+hostServer);
     client.println("Content-Type: application/json");
     client.print("Content-Length: ");
     client.println(bodyData.length());
