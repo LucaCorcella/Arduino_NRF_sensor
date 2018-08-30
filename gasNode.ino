@@ -45,7 +45,7 @@ void loop() {
     if (!ok) {
       Serial.println("it failed to send");
     } else {
-      tempGas = transmitter_gas.data;
+      tempGas = data;
       Serial.println("data sent");
     }
   }
