@@ -1,0 +1,162 @@
+#include <SPI.h>
+#include <Ethernet.h>
+#include <PubSubClient.h> //mqtt client
+#include "ArduinoJson.h"
+#include <ArduinoHttpClient.h>
+
+// Update these with values suitable for your network.
+byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x23, 0x36 };
+IPAddress ip(146, 48, 85, 69);
+IPAddress server(146, 48, 82, 160);
+IPAddress dnServer(146, 48, 80, 3);// the dns
+IPAddress gateway(146, 48, 80, 1);// the router's gateway address.
+IPAddress subnet(255, 255, 248, 0);// the subnet.
+
+const PROGMEM char hueHubIP[] = "146.48.85.37";  // Hue hub IP static - aaltestno10
+const PROGMEM char hueUsername[] = "jTRLNMt3ozjkbFjIz8NlYUiDjooN-Zw1RrdKks-L";  // Hue username
+const PROGMEM int hueHubPort = 80;
+
+EthernetClient client;
+PubSubClient mqttClient;
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!mqttClient.connected()) {
+    // Attempt to connect
+    if (mqttClient.connect("arduinoClientID")) {
+      Serial.println(F("mqtt connected"));
+
+      mqttClient.publish("subscription", "{\"userName\":\"auth0|5af15a58a7a3731662429fff\", \"appName\":\"living_lab\",\"actionFormat\":\"json\",\"notificationType\":\"MQTT\"}");
+      //mqttClient.subscribe("living_lab*auth0|5af15a58a7a3731662429fff*subscriptionResponse");
+      //mqttClient.subscribe("living_lab*auth0|5af15a58a7a3731662429fff*subResp");
+      mqttClient.subscribe("living_lab*auth0|5af15a58a7a3731662429fff");
+      //mqttClient.subscribe("receiveActions");
+
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(mqttClient.state());
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  payload[length] = '\0';
+
+  char* varTemp = (char*)payload;
+  Serial.println(varTemp);
+
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& root = jsonBuffer.parseObject(varTemp);
+
+  // Test if parsing succeeds.
+  if (!root.success()) {
+    Serial.println("parseObject() failed");
+    return;
+  }
+
+  const char* newAction = root["newAction"];
+  
+  if (strcmp(newAction, "true") == 0) {
+    JsonArray& actions = root["actions"];
+    for (auto& action : actions) {
+      const char* room = action["room"];
+      JsonObject& command = action["command"];
+      const char* on = command["on"];
+      double x = command["xy"][0];
+      double y = command["xy"][1];
+      int bri = command["bri"];
+      int transitiontime = command["transitiontime"];
+
+      String com = "{\"on\": "+String(on)+", \"xy\": [" + String(x) + "," + String(y) + "], \"bri\": " + bri + ", \"transitiontime\" : " + transitiontime + "}";
+
+       Serial.println(com);
+       //int lampId = getLightIndex(room);
+        //Serial.println(lampId);
+       setHue(getLightIndex(room), com);
+       
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(57600);
+  delay(3000);
+
+  Serial.println(F("Here is the HUB..."));
+
+  if (1) { //if (Ethernet.begin(mac) == 0) for static DHCP {
+    Serial.println(F("Failed to configure Ethernet using DHCP"));
+    Ethernet.begin(mac, ip, dnServer, gateway, subnet);
+    Serial.println(F("Ethernet configured with static ip"));
+  } else {
+    Serial.print(F("My IP address [DHCP]: "));
+    for (byte thisByte = 0; thisByte < 4; thisByte++) {
+      Serial.print(Ethernet.localIP()[thisByte], DEC);
+      Serial.print(".");
+    }
+    Serial.println();
+  }
+  mqttClient.setClient(client);
+  mqttClient.setServer(server, 1883);
+  mqttClient.setCallback(callback);
+
+  reconnect();
+
+  delay(1500);
+}
+
+void loop() {
+  mqttClient.loop();
+}
+
+//change lights status
+void setHue(int lightNum, String command) {
+  if (client.available()) {
+   char c = client.read();
+  }
+  client.stop();
+  if (client.connect(hueHubIP, hueHubPort)) {
+    while (client.connected()) {
+      client.print("PUT /api/");
+      client.print(hueUsername);
+      client.print("/lights/");
+      client.print(lightNum);  // hueLight zero based, add 1
+      client.println("/state HTTP/1.1");
+      client.println("keep-alive");
+      client.print("Host: ");
+      client.println(hueHubIP);
+      client.print("Content-Length: ");
+      client.println(command.length());
+      client.println("Content-Type: text/plain;charset=UTF-8");
+      client.println();  // blank line before body
+      client.println(command);  // Hue command
+    }
+    client.stop();
+    //return true;  // command executed
+  }
+  //else
+  //return false;  // command failed
+}
+
+
+void resetEthernet() {
+  client.stop();
+  delay(1000);
+  Ethernet.begin(mac, ip);
+  delay(2000);
+}
+
+int getLightIndex(String room) {
+  if (room == "i-92")
+    return 4;
+  else if (room == "i-98")
+    return 5;
+  else if (room == "i-94")
+    return 6;
+    else if(room == "i-95")
+    return 8;
+  else return 0;
+}
+
